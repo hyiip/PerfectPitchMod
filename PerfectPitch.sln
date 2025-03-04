@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35521.163
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfectPitch", "PerfectPitch\PerfectPitch.csproj", "{F8849074-9F73-4381-9CFF-27C1CD75ADA5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfectPitchCore", "PerfectPitchCore\PerfectPitchCore.csproj", "{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfectPitchTest", "PerfectPitchTest\PerfectPitchTest.csproj", "{BDB251B8-33B1-4F11-87C9-5115EEA52FE6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F8849074-9F73-4381-9CFF-27C1CD75ADA5}.Debug|x64.ActiveCfg = Debug|x64
+		{F8849074-9F73-4381-9CFF-27C1CD75ADA5}.Debug|x64.Build.0 = Debug|x64
+		{F8849074-9F73-4381-9CFF-27C1CD75ADA5}.Release|x64.ActiveCfg = Release|x64
+		{F8849074-9F73-4381-9CFF-27C1CD75ADA5}.Release|x64.Build.0 = Release|x64
+		{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}.Debug|x64.ActiveCfg = Debug|x64
+		{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}.Debug|x64.Build.0 = Debug|x64
+		{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}.Release|x64.ActiveCfg = Release|x64
+		{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}.Release|x64.Build.0 = Release|x64
+		{BDB251B8-33B1-4F11-87C9-5115EEA52FE6}.Debug|x64.ActiveCfg = Debug|x64
+		{BDB251B8-33B1-4F11-87C9-5115EEA52FE6}.Debug|x64.Build.0 = Debug|x64
+		{BDB251B8-33B1-4F11-87C9-5115EEA52FE6}.Release|x64.ActiveCfg = Release|x64
+		{BDB251B8-33B1-4F11-87C9-5115EEA52FE6}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {60938DC3-8B4F-4698-BF7B-4CAB70B76925}
+	EndGlobalSection
+EndGlobal
