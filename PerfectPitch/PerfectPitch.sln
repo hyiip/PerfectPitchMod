@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35825.156
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfectPitch", "PerfectPitch.csproj", "{D40E4CED-21F2-46CD-B783-3BCD2A4CCF68}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfectPitchCore", "..\PerfectPitchMod\PerfectPitchCore\PerfectPitchCore.csproj", "{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D40E4CED-21F2-46CD-B783-3BCD2A4CCF68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D40E4CED-21F2-46CD-B783-3BCD2A4CCF68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D40E4CED-21F2-46CD-B783-3BCD2A4CCF68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D40E4CED-21F2-46CD-B783-3BCD2A4CCF68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}.Debug|Any CPU.Build.0 = Debug|x64
+		{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}.Release|Any CPU.ActiveCfg = Release|x64
+		{0F4D6344-C173-4208-ADB9-F8F3FA6F1EAC}.Release|Any CPU.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {752A7F8D-1CF0-40FD-B50D-2BD66D9C8D2B}
+	EndGlobalSection
+EndGlobal

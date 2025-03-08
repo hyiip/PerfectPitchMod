@@ -86,6 +86,7 @@ namespace PerfectPitchCore.Utils
                         var config = (PitchManager.PitchConfig)serializer.Deserialize(reader);
                         Console.WriteLine($"Loaded configuration from {path}");
                         Console.WriteLine($"Base note: {NoteUtility.GetNoteName(config.BasePitch)} ({config.BasePitch:F2} Hz)");
+                        Console.WriteLine($"Stability settings: History={config.StabilityHistory}, Threshold={config.StabilityThreshold}");
                         return config;
                     }
                 }
@@ -152,13 +153,17 @@ namespace PerfectPitchCore.Utils
             return new PitchManager.PitchConfig
             {
                 Algorithm = "dywa", // Default to DYWA as requested
-                BasePitch = 130.81f, // C3
+                BasePitch = 103.83f, // C3
                 DeviceNumber = 0,
                 MaxFrequency = 2000.0f,
                 MinFrequency = 40,
                 VolumeThresholdDb = -30.0f,
                 PitchSensitivity = 0.5f,
-                SampleRate = 44100
+                SampleRate = 44100,
+
+                // Default stability settings
+                StabilityHistory = 3,
+                StabilityThreshold = 2
             };
         }
 

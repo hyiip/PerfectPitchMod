@@ -16,7 +16,7 @@ namespace PerfectPitchCore.Audio
         private bool disposed = false;
         private float currentAudioLevel = 0;
         private PitchConfig currentConfig;
-        
+
         /// <summary>
         /// Configuration for the pitch detection system
         /// </summary>
@@ -30,6 +30,10 @@ namespace PerfectPitchCore.Audio
             public float VolumeThresholdDb { get; set; } = -30.0f;
             public float PitchSensitivity { get; set; } = 0.2f;
             public int SampleRate { get; set; } = 44100;
+
+            // Added stability settings
+            public int StabilityHistory { get; set; } = 3;
+            public int StabilityThreshold { get; set; } = 2;
         }
 
         /// <summary>
@@ -79,13 +83,13 @@ namespace PerfectPitchCore.Audio
             bool needsRestart = currentConfig.Algorithm != newConfig.Algorithm ||
                                currentConfig.DeviceNumber != newConfig.DeviceNumber ||
                                currentConfig.SampleRate != newConfig.SampleRate;
-            
+
             // Simple approach - always stop and restart if needed
             bool wasRunning = false;
-            
+
             if (needsRestart && waveIn != null)
             {
-                try 
+                try
                 {
                     waveIn.StopRecording();
                     wasRunning = true;
@@ -96,19 +100,19 @@ namespace PerfectPitchCore.Audio
                     wasRunning = false;
                 }
             }
-            
+
             // Update configuration
             currentConfig = newConfig;
-            
+
             if (needsRestart)
             {
                 // Clean up existing resources
                 waveIn?.Dispose();
                 pitchDetector?.Dispose();
-                
+
                 // Reinitialize with new configuration
                 InitializeAudio(newConfig);
-                
+
                 // Restart if necessary
                 if (wasRunning)
                 {
@@ -121,7 +125,7 @@ namespace PerfectPitchCore.Audio
                 aubioDetector.SetConfidenceThreshold(newConfig.PitchSensitivity);
                 // Silence threshold could be adjusted based on volumeThresholdDb if needed
             }
-            
+
             Console.WriteLine("Configuration updated");
         }
 
@@ -215,7 +219,6 @@ namespace PerfectPitchCore.Audio
         /// <summary>
         /// Create the appropriate pitch detector based on the algorithm name
         /// </summary>
-
         private IPitchDetector CreatePitchDetector(PitchConfig config)
         {
             return PitchDetectorFactory.CreateDetector(
@@ -288,7 +291,7 @@ namespace PerfectPitchCore.Audio
                 waveIn?.StopRecording();
                 waveIn?.Dispose();
                 pitchDetector?.Dispose();
-                
+
                 // Dispose any processors that implement IDisposable
                 foreach (var processor in pitchProcessors)
                 {
@@ -297,12 +300,11 @@ namespace PerfectPitchCore.Audio
                         disposable.Dispose();
                     }
                 }
-                
+
                 pitchProcessors.Clear();
                 disposed = true;
             }
         }
-        // Add these to the existing PitchManager class - new public property and fields
 
         /// <summary>
         /// Get the current configuration
@@ -331,7 +333,9 @@ namespace PerfectPitchCore.Audio
                 MinFrequency = currentConfig.MinFrequency,
                 PitchSensitivity = currentConfig.PitchSensitivity,
                 SampleRate = currentConfig.SampleRate,
-                VolumeThresholdDb = currentConfig.VolumeThresholdDb
+                VolumeThresholdDb = currentConfig.VolumeThresholdDb,
+                StabilityHistory = currentConfig.StabilityHistory,
+                StabilityThreshold = currentConfig.StabilityThreshold
             };
 
             // Switch to calibration config
@@ -359,7 +363,9 @@ namespace PerfectPitchCore.Audio
                 MinFrequency = originalConfig.MinFrequency,
                 PitchSensitivity = originalConfig.PitchSensitivity,
                 SampleRate = originalConfig.SampleRate,
-                VolumeThresholdDb = originalConfig.VolumeThresholdDb
+                VolumeThresholdDb = originalConfig.VolumeThresholdDb,
+                StabilityHistory = originalConfig.StabilityHistory,
+                StabilityThreshold = originalConfig.StabilityThreshold
             };
 
             // Update the configuration
