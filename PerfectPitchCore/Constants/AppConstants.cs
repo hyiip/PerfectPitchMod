@@ -66,7 +66,7 @@ namespace PerfectPitchCore.Constants
         /// </summary>
         public static class Config
         {
-            public const string DEFAULT_CONFIG_FILENAME = "config.xml";
+            public const string DEFAULT_CONFIG_FILENAME = "PerfectPitchConfig.xml";
             public const string APP_FOLDER_NAME = "PerfectPitch";
         }
 
