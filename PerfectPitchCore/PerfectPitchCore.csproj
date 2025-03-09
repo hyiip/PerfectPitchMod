@@ -45,8 +45,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Audio\AubioPitchDetector.cs" />
-    <Compile Include="Audio\CalibrationVisualizer.cs" />
-    <Compile Include="Audio\DebugVisualizer.cs" />
+    <Compile Include="Audio\CalibrationVisualizerBase.cs" />
+    <Compile Include="Audio\ICalibrationVisualizer.cs" />
     <Compile Include="Audio\DywaPitchDetector.cs" />
     <Compile Include="Audio\IPitchProcessor.cs" />
     <Compile Include="Audio\IPitchService.cs" />
@@ -60,6 +60,7 @@
     <Compile Include="Constants\AppConstants.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\ConfigManager.cs" />
+    <Compile Include="Utils\CoreLogger.cs" />
     <Compile Include="Utils\JumpLevelCalculator.cs" />
     <Compile Include="Utils\NoteUtility.cs" />
   </ItemGroup>

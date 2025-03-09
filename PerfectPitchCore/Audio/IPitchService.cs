@@ -53,9 +53,5 @@ namespace PerfectPitchCore.Audio
         /// </summary>
         void SetVerboseLogging(bool verbose);
 
-        /// <summary>
-        /// Enable or disable the debug visualizer
-        /// </summary>
-        void EnableDebugVisualizer(bool enable);
     }
 }

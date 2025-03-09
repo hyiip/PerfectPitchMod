@@ -1,8 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Reflection;
 using System.Xml.Serialization;
 using PerfectPitchCore.Audio;
-
+using PerfectPitchCore.Constants;
 namespace PerfectPitchCore.Utils
 {
     /// <summary>
@@ -11,7 +12,7 @@ namespace PerfectPitchCore.Utils
     public static class ConfigManager
     {
         // Default config file name
-        private const string DefaultConfigFileName = "config.xml";
+        private const string DefaultConfigFileName = AppConstants.Config.DEFAULT_CONFIG_FILENAME;
 
         // Default directory in AppData
         private static readonly string DefaultAppDataPath = Path.Combine(
@@ -111,6 +112,7 @@ namespace PerfectPitchCore.Utils
             return SaveConfig(config, configPath);
         }
 
+
         /// <summary>
         /// Save configuration to a specific path
         /// </summary>
@@ -168,34 +170,105 @@ namespace PerfectPitchCore.Utils
         }
 
         /// <summary>
+        /// Initialize the config manager and verify configuration exists
+        /// </summary>
+        public static void Initialize()
+        {
+            try
+            {
+                CoreLogger.Info("Initializing ConfigManager");
+
+                // Check if config file exists
+                string configPath = GetConfigPath();
+                bool configExists = File.Exists(configPath);
+
+                CoreLogger.Info($"Config file exists: {configExists}");
+
+                // If the config doesn't exist, create it with default settings
+                if (!configExists)
+                {
+                    var defaultConfig = CreateDefaultConfig();
+                    SaveConfig(defaultConfig, configPath);
+                    CoreLogger.Info("Created default configuration");
+                }
+                else
+                {
+                    // Try to load the config to verify it's valid
+                    try
+                    {
+                        var config = LoadConfig(configPath);
+                        if (config != null)
+                        {
+                            CoreLogger.Info($"Loaded existing configuration: BasePitch={config.BasePitch:F2}Hz");
+                        }
+                        else
+                        {
+                            CoreLogger.Warning("Config file exists but couldn't be loaded, creating new default");
+                            var defaultConfig = CreateDefaultConfig();
+                            SaveConfig(defaultConfig, configPath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        CoreLogger.Error($"Error loading existing config: {ex.Message}");
+                        CoreLogger.Info("Creating new default configuration");
+                        var defaultConfig = CreateDefaultConfig();
+                        SaveConfig(defaultConfig, configPath);
+                    }
+                }
+
+                CoreLogger.Info("ConfigManager initialization complete");
+            }
+            catch (Exception ex)
+            {
+                CoreLogger.Error($"Error initializing ConfigManager: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Get the appropriate configuration file path
         /// </summary>
         private static string GetConfigPath()
         {
-            // Use custom path if set
-            if (!string.IsNullOrEmpty(customConfigPath))
+            try
             {
-                return Path.Combine(customConfigPath, DefaultConfigFileName);
-            }
+                // Always use assembly location for consistency
+                string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                string configPath = Path.Combine(assemblyPath, "PerfectPitchConfig.xml");
 
-            // Fall back to AppData 
-            string appDataPath = Path.Combine(DefaultAppDataPath, DefaultConfigFileName);
+                CoreLogger.Info($"Config path set to: {configPath}");
 
-            // Ensure directory exists
-            string directory = Path.GetDirectoryName(appDataPath);
-            if (!Directory.Exists(directory))
-            {
-                try
+                // Ensure directory exists (should always exist since it's the assembly directory)
+                string directory = Path.GetDirectoryName(configPath);
+                if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
+                    CoreLogger.Info($"Created directory: {directory}");
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error creating config directory: {ex.Message}");
-                }
-            }
 
-            return appDataPath;
+                return configPath;
+            }
+            catch (Exception ex)
+            {
+                CoreLogger.Error($"Error determining config path: {ex.Message}");
+
+                // Fallback to a standard location if we can't get the assembly path
+                string fallbackPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "PerfectPitch",
+                    "PerfectPitchConfig.xml");
+
+                CoreLogger.Info($"Using fallback config path: {fallbackPath}");
+
+                // Ensure fallback directory exists
+                string fallbackDir = Path.GetDirectoryName(fallbackPath);
+                if (!Directory.Exists(fallbackDir))
+                {
+                    Directory.CreateDirectory(fallbackDir);
+                }
+
+                return fallbackPath;
+            }
         }
     }
 }

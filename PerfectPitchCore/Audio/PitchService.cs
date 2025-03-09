@@ -24,7 +24,6 @@ namespace PerfectPitchCore.Audio
         private bool disposed = false;
         private PitchManager.PitchConfig currentConfig;
         private readonly object lockObject = new object();
-        private DebugVisualizer debugVisualizer;
         private readonly List<IPitchProcessor> pendingProcessors = new List<IPitchProcessor>();
 
         /// <summary>
@@ -289,28 +288,6 @@ namespace PerfectPitchCore.Audio
         }
 
         /// <summary>
-        /// Enable or disable the debug visualizer
-        /// </summary>
-        public void EnableDebugVisualizer(bool enable)
-        {
-            if (pitchManager == null)
-                return;
-
-            if (enable && debugVisualizer == null)
-            {
-                debugVisualizer = new DebugVisualizer();
-                pitchManager.RegisterProcessor(debugVisualizer);
-                Console.WriteLine("PitchService: Debug visualizer enabled");
-            }
-            else if (!enable && debugVisualizer != null)
-            {
-                pitchManager.UnregisterProcessor(debugVisualizer);
-                debugVisualizer = null;
-                Console.WriteLine("PitchService: Debug visualizer disabled");
-            }
-        }
-
-        /// <summary>
         /// Main audio capture thread function
         /// </summary>
         private void RunAudioCapture()
@@ -356,6 +333,15 @@ namespace PerfectPitchCore.Audio
 
                 Console.WriteLine("PitchService: Audio thread exited");
             }
+        }
+
+        /// <summary>
+        /// Get the underlying pitch manager for calibration and advanced operations
+        /// </summary>
+        /// <returns>The current pitch manager or null if not available</returns>
+        public PitchManager GetPitchManager()
+        {
+            return pitchManager;
         }
 
         /// <summary>

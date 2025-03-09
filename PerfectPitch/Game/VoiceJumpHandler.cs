@@ -135,8 +135,30 @@ namespace PerfectPitch.Game
                 }
 
                 // 6. NOW actually start the pitch service
-                _pitchService.Start();
-                _isRunning = true;
+
+                try
+                {
+                    // Existing start code...
+                    _pitchService.Start();
+                    _isRunning = true;
+                    Log.Info("Voice pitch detection started successfully");
+                }
+                catch (DllNotFoundException ex)
+                {
+                    Log.Error($"Failed to start pitch detection - DLL not found: {ex.Message}");
+                    throw new Exception($"Audio library not found: {ex.Message}");
+                }
+                catch (BadImageFormatException ex)
+                {
+                    Log.Error($"Failed to start pitch detection - bad DLL format: {ex.Message}");
+                    throw new Exception($"Audio library format error (x86/x64 mismatch): {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Failed to start pitch detection: {ex.Message}");
+                    throw;
+                }
+
 
                 // 7. Log available microphones
                 var mics = _pitchService.GetAvailableMicrophones();
@@ -386,5 +408,83 @@ namespace PerfectPitch.Game
                 Log.Info("Voice jump handler disposed");
             }
         }
+
+        /// <summary>
+        /// Get the underlying pitch manager for calibration purposes
+        /// </summary>
+        /// <returns>The current pitch manager or null if not available</returns>
+        public PitchManager GetPitchManager()
+        {
+            if (_pitchService is PitchService service)
+            {
+                return service.GetPitchManager();
+            }
+            return null;
+        }
+
+        public bool VerifyNativeLibraries()
+        {
+            try
+            {
+                string assemblyPath = System.IO.Path.GetDirectoryName(
+                    System.Reflection.Assembly.GetExecutingAssembly().Location);
+                string libPath = System.IO.Path.Combine(assemblyPath, "lib");
+
+                Log.Info($"Checking native libraries in {libPath}");
+
+                // Check if lib directory exists
+                if (!System.IO.Directory.Exists(libPath))
+                {
+                    Log.Error("Library directory does not exist");
+                    return false;
+                }
+
+                // Check for required DLLs
+                string dywaDll = System.IO.Path.Combine(libPath, "dywapitchtrack.dll");
+                string aubioDll = System.IO.Path.Combine(libPath, "libaubio-5.dll");
+
+                bool dywaExists = System.IO.File.Exists(dywaDll);
+                bool aubioExists = System.IO.File.Exists(aubioDll);
+
+                Log.Info($"DLL check: dywapitchtrack.dll exists: {dywaExists}, libaubio-5.dll exists: {aubioExists}");
+
+                if (!dywaExists || !aubioExists)
+                {
+                    return false;
+                }
+
+                // Try to load the DLLs to verify they're valid
+                try
+                {
+                    IntPtr dywaDllHandle = LoadLibrary(dywaDll);
+                    if (dywaDllHandle == IntPtr.Zero)
+                    {
+                        Log.Error($"Failed to load dywapitchtrack.dll, error code: {Marshal.GetLastWin32Error()}");
+                        return false;
+                    }
+
+                    IntPtr aubioDllHandle = LoadLibrary(aubioDll);
+                    if (aubioDllHandle == IntPtr.Zero)
+                    {
+                        Log.Error($"Failed to load libaubio-5.dll, error code: {Marshal.GetLastWin32Error()}");
+                        return false;
+                    }
+
+                    Log.Info("All native libraries loaded successfully");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Error loading native libraries: {ex.Message}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Error verifying native libraries: {ex.Message}");
+                return false;
+            }
+        }
+
     }
 }

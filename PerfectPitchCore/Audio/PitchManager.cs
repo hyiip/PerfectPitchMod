@@ -174,45 +174,51 @@ namespace PerfectPitchCore.Audio
         /// </summary>
         private void ProcessAudioData(byte[] buffer, int bytesRecorded, PitchConfig config)
         {
-            float audioLevel = CalculateAudioLevel(buffer, bytesRecorded);
-            currentAudioLevel = audioLevel;
-            float audioLevelDb = ConvertToDecibels(audioLevel);
-
-            // Process audio through pitch detector
-            pitchDetector.ProcessAudioData(buffer, bytesRecorded, audioLevelDb);
-
-            // Create pitch data for all processors
-            var pitchData = new PitchData
+            try
             {
-                Pitch = pitchDetector.GetCurrentPitch(),
-                AudioLevel = audioLevel,
-                AudioLevelDb = audioLevelDb,
-                BasePitch = config.BasePitch,
-                Timestamp = DateTime.Now
-            };
+                float audioLevel = CalculateAudioLevel(buffer, bytesRecorded);
+                currentAudioLevel = audioLevel;
+                float audioLevelDb = ConvertToDecibels(audioLevel);
 
-            // Calculate jump level using the calculator
-            pitchData.JumpLevel = JumpLevelCalculator.CalculateJumpLevel(pitchData.Pitch, config.BasePitch);
+                // Process audio through pitch detector
+                pitchDetector.ProcessAudioData(buffer, bytesRecorded, audioLevelDb);
 
-            // Always notify calibration processors, even when pitch isn't detected
-            foreach (var processor in pitchProcessors)
-            {
-                if (processor is CalibrationProcessor || processor is CalibrationVisualizer)
+                // Create pitch data for all processors
+                var pitchData = new PitchData
                 {
-                    processor.ProcessPitch(pitchData);
-                }
-            }
+                    Pitch = pitchDetector.GetCurrentPitch(),
+                    AudioLevel = audioLevel,
+                    AudioLevelDb = audioLevelDb,
+                    BasePitch = config.BasePitch,
+                    Timestamp = DateTime.Now
+                };
 
-            // For other processors, only notify if pitch is detected and above threshold
-            if (audioLevelDb > config.VolumeThresholdDb && pitchDetector.IsPitchDetected())
-            {
+                // Calculate jump level using the calculator
+                pitchData.JumpLevel = JumpLevelCalculator.CalculateJumpLevel(pitchData.Pitch, config.BasePitch);
+
+                bool hasPitch = pitchDetector.IsPitchDetected() && audioLevelDb > config.VolumeThresholdDb;
+
+                // Process all registered processors
                 foreach (var processor in pitchProcessors)
                 {
-                    if (!(processor is CalibrationProcessor || processor is CalibrationVisualizer))
+                    try
                     {
-                        processor.ProcessPitch(pitchData);
+                        // Either the processor wants all events OR we have a valid pitch
+                        if (processor.ReceiveAllAudioEvents || hasPitch)
+                        {
+                            processor.ProcessPitch(pitchData);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the error but continue with other processors
+                        CoreLogger.Error($"Error processing pitch in {processor.GetType().Name}: {ex.Message}");
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                CoreLogger.Error($"Error in ProcessAudioData: {ex.Message}");
             }
         }
 

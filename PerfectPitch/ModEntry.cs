@@ -49,6 +49,10 @@ namespace PerfectPitch
         private static DateTime unmutedTime = DateTime.MinValue;
         private static readonly TimeSpan RESTART_DELAY = TimeSpan.FromMilliseconds(100);
 
+
+        private static CalibrationProcessor calibrationProcessor;
+        private static GameCalibrationVisualizer calibrationVisualizer;
+
         private static int queuedJumpLevel = -1;
         private static bool jumpQueued = false;
 
@@ -88,6 +92,9 @@ namespace PerfectPitch
 
                 // Create voice jump handler with jump controller
                 voiceJumpHandler = new VoiceJumpHandler(jumpController);
+
+                calibrationProcessor = new CalibrationProcessor();
+                calibrationVisualizer = new GameCalibrationVisualizer(calibrationProcessor, harmony);
 
                 // CRITICAL CHANGE: Don't actually start the audio capture yet
                 // We'll do that in OnLevelStart instead to ensure proper sequencing
@@ -155,6 +162,9 @@ namespace PerfectPitch
         {
             try
             {
+                // Initialize the ConfigManager to ensure config file exists and is valid
+                ConfigManager.Initialize();
+
                 // Load config
                 var config = ConfigManager.LoadConfig();
                 if (config == null)
@@ -588,6 +598,15 @@ namespace PerfectPitch
             }
         }
 
+
+        /// <summary>
+        /// Get the calibration overlay instance
+        /// </summary>
+        public static GameCalibrationVisualizer GetCalibrationVisualizer()
+        {
+            return calibrationVisualizer;
+        }
+
         /// <summary>
         /// Execute a fixed frame jump
         /// </summary>
@@ -724,37 +743,157 @@ namespace PerfectPitch
             return new StabilityOption();
         }
 
-        /// <summary>
-        /// Force an update to the voice visualizer for testing
-        /// </summary>
-        private static void ForceUpdateVisualizer()
+        public static void StartCalibration(CalibrationProcessor calibrator)
         {
-            // If we have no visualizer, exit
-            if (voiceVisualizer == null)
-                return;
-
             try
             {
-                // Create a dummy PitchData with audio information
-                var pitchData = new PitchData
+                Log.Info("Starting voice calibration from ModEntry");
+
+                // If audio is running, we need to temporarily pause it
+                bool wasRunning = false;
+                if (voiceJumpHandler != null && voiceJumpHandler.IsActive)
                 {
-                    // No pitch information
-                    Pitch = 0,
-                    AudioLevel = 0.01f,
-                    AudioLevelDb = -40.0f,
-                    BasePitch = 130.81f,
-                    Timestamp = DateTime.Now
+                    voiceJumpHandler.Stop();
+                    wasRunning = true;
+                    Log.Info("Temporarily stopped voice handler for calibration");
+                }
+
+                // Verify native libraries if verification method is available
+                if (voiceJumpHandler != null &&
+                    typeof(VoiceJumpHandler).GetMethod("VerifyNativeLibraries") != null &&
+                    !voiceJumpHandler.VerifyNativeLibraries())
+                {
+                    Log.Error("Failed to verify native audio libraries - calibration cannot proceed");
+                    return;
+                }
+
+                // Set the pitch manager in the calibrator
+                var pitchManager = voiceJumpHandler?.GetPitchManager();
+                if (pitchManager != null)
+                {
+                    calibrator.SetPitchManager(pitchManager);
+                    Log.Info("Set pitch manager in calibrator");
+                }
+
+                // Create the visualizer OUTSIDE any conditional blocks so it's in scope for the event handlers
+                // Use our new GameCalibrationVisualizer class instead of the old CalibrationVisualizer
+                var tempVisualizer = new GameCalibrationVisualizer(calibrator, harmony);
+
+                // Verify audio devices if verification method is available
+                if (calibrator != null &&
+                    typeof(CalibrationProcessor).GetMethod("VerifyAudioDevices") != null &&
+                    !calibrator.VerifyAudioDevices())
+                {
+                    Log.Error("No valid microphones detected - calibration cannot proceed");
+                    return;
+                }
+
+                // Register the calibrator as a processor
+                if (voiceJumpHandler != null)
+                {
+                    voiceJumpHandler.RegisterProcessor(calibrator);
+                    voiceJumpHandler.RegisterProcessor(tempVisualizer);
+                    Log.Info("Registered calibration processors with voice jump handler");
+                }
+                else
+                {
+                    Log.Error("Cannot register calibration processors - voice jump handler is null");
+                }
+
+                // Start the audio capture if it's not already running
+                if (voiceJumpHandler == null)
+                {
+                    // Create a new handler just for calibration
+                    voiceJumpHandler = new VoiceJumpHandler(jumpController);
+                    Log.Info("Created new voice jump handler for calibration");
+
+                    // Register with the new handler too
+                    voiceJumpHandler.RegisterProcessor(calibrator);
+                    voiceJumpHandler.RegisterProcessor(tempVisualizer);
+                }
+
+                // Start the audio capture
+                voiceJumpHandler.Start();
+                Log.Info("Started audio capture for calibration");
+
+                // Start the calibration process
+                calibrator.StartCalibration();
+                Log.Info("Calibration process started");
+
+                // Show the visualizer
+                tempVisualizer.Show();
+
+                // Add event handler to cleanup when calibration is done
+                Action<float> cleanupHandler = null;
+                cleanupHandler = basePitch => {
+                    // Remove the event handler to avoid memory leaks
+                    calibrator.CalibrationCompleted -= cleanupHandler;
+
+                    // Clean up after calibration - use voiceJumpHandler to unregister
+                    if (voiceJumpHandler != null)
+                    {
+                        voiceJumpHandler.UnregisterProcessor(tempVisualizer);
+                        Log.Info("Unregistered calibration visualizer");
+                    }
+
+                    // Hide the visualizer
+                    tempVisualizer.Hide();
+
+                    // Keep the calibrator registered as it might be needed later
+
+                    // Restart normal operation if it was running before
+                    if (wasRunning && IsEnabled && !IsMuted)
+                    {
+                        voiceJumpHandler.Start();
+                        Log.Info("Restarted voice handler after calibration");
+                    }
+
+                    Log.Info($"Calibration completed with base pitch: {basePitch:F2} Hz");
                 };
 
-                // Force process directly
-                voiceVisualizer.ProcessPitch(pitchData);
+                calibrator.CalibrationCompleted += cleanupHandler;
 
-                Log.Info("Forced visualizer update with dummy data");
+                // Also handle failure case
+                Action failureHandler = null;
+                failureHandler = () => {
+                    // Remove the event handler to avoid memory leaks
+                    calibrator.CalibrationFailed -= failureHandler;
+
+                    // Clean up after calibration - use voiceJumpHandler to unregister
+                    if (voiceJumpHandler != null)
+                    {
+                        voiceJumpHandler.UnregisterProcessor(tempVisualizer);
+                        Log.Info("Unregistered calibration visualizer");
+                    }
+
+                    // Hide the visualizer
+                    tempVisualizer.Hide();
+
+                    // Restart normal operation if it was running before
+                    if (wasRunning && IsEnabled && !IsMuted)
+                    {
+                        voiceJumpHandler.Start();
+                        Log.Info("Restarted voice handler after calibration failure");
+                    }
+
+                    Log.Info("Calibration failed, cleaned up resources");
+                };
+
+                calibrator.CalibrationFailed += failureHandler;
             }
             catch (Exception ex)
             {
-                Log.Error("Error forcing visualizer update", ex);
+                Log.Error("Error starting calibration from ModEntry", ex);
             }
+        }
+
+
+        // Add this to register the CalibrationOption in the menus
+        [PauseMenuItemSetting]
+        [MainMenuItemSetting]
+        public static CalibrationOption AddCalibrationOption(object factory, GuiFormat format)
+        {
+            return new CalibrationOption();
         }
     }
 }

@@ -30,6 +30,8 @@ namespace PerfectPitch.Game
         // Use constant for minimum jump interval
         private const double MIN_JUMP_INTERVAL_MS = AppConstants.Stability.MIN_JUMP_INTERVAL_MS;
 
+        public bool ReceiveAllAudioEvents => false;
+
         // Predefined stability presets
         public enum StabilityPreset
         {

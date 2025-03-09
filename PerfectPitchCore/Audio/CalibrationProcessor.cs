@@ -32,6 +32,8 @@ namespace PerfectPitchCore.Audio
         public event Action<List<float>> CalibrationDataCollected;
         public event Action RecalibrationStarted;
 
+
+
         // Calibration settings
         private readonly int countdownSeconds = 3;
         private readonly int recordingSeconds = 5;
@@ -61,6 +63,11 @@ namespace PerfectPitchCore.Audio
         public CalibrationProcessor()
         {
         }
+
+        /// <summary>
+        /// Gets whether this processor should receive all audio events
+        /// </summary>
+        public bool ReceiveAllAudioEvents => true;
 
         /// <summary>
         /// Set the pitch manager for recalibration support
@@ -496,7 +503,25 @@ namespace PerfectPitchCore.Audio
         /// </summary>
         private void UpdateStatus(string status)
         {
-            CalibrationStatusChanged?.Invoke(status);
+            try
+            {
+                CoreLogger.Info($"Calibration status update: {status}");
+                CalibrationStatusChanged?.Invoke(status);
+            }
+            catch (Exception ex)
+            {
+                // Log the detailed exception
+                CoreLogger.Error($"Error in CalibrationStatusChanged event handler: {ex.Message}");
+                CoreLogger.Error($"Stack trace: {ex.StackTrace}");
+
+                // If it's a native error, we can extract more details
+                if (ex is System.Runtime.InteropServices.ExternalException)
+                {
+                    int errorCode = System.Runtime.InteropServices.Marshal.GetHRForException(ex);
+                    CoreLogger.Error($"Native error code: 0x{errorCode:X8}");
+                }
+
+            }
         }
 
         /// <summary>
@@ -521,6 +546,44 @@ namespace PerfectPitchCore.Audio
                     cancellationTokenSource?.Dispose();
                 }
                 disposedValue = true;
+            }
+        }
+        public bool VerifyAudioDevices()
+        {
+            try
+            {
+                // Get available microphones to check if any are available
+                var mics = PitchManager.GetAvailableMicrophones();
+                if (mics.Count == 0)
+                {
+                    Console.WriteLine("No microphones detected on the system");
+                    UpdateStatus("Error: No microphones detected");
+                    return false;
+                }
+
+                // Log available devices for debugging
+                Console.WriteLine($"Available microphones ({mics.Count}):");
+                foreach (var mic in mics)
+                {
+                    Console.WriteLine($"  - {mic}");
+                }
+
+                // Check if we have a valid index for the device
+                var config = ConfigManager.LoadConfig();
+                if (config != null && config.DeviceNumber >= mics.Count)
+                {
+                    Console.WriteLine($"Invalid device index: {config.DeviceNumber}, max valid index is {mics.Count - 1}");
+                    UpdateStatus($"Error: Invalid microphone index {config.DeviceNumber}");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error verifying audio devices: {ex.Message}");
+                UpdateStatus($"Error verifying audio: {ex.Message}");
+                return false;
             }
         }
     }

@@ -53,11 +53,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Game\GameCalibrationVisualizer.cs" />
     <Compile Include="Game\InputManager.cs" />
     <Compile Include="Game\JumpController.cs" />
-    <Compile Include="Game\TestPitchProcessor.cs" />
     <Compile Include="Game\VoiceJumpHandler.cs" />
     <Compile Include="Game\VoiceVisualizer.cs" />
+    <Compile Include="Menu\CalibrationOption.cs" />
     <Compile Include="Menu\MicrophoneOption.cs" />
     <Compile Include="Menu\StabilityOption.cs" />
     <Compile Include="Menu\ThresholdOption.cs" />

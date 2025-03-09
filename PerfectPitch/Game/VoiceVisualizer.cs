@@ -42,6 +42,7 @@ namespace PerfectPitch.Game
         // Force data check trigger
         private static DateTime _startTime = DateTime.Now;
         private static bool _isVisualizerInitialized = false;
+        public bool ReceiveAllAudioEvents => true;
 
         /// <summary>
         /// Constructor - patches the game's draw method to render our visualizer
@@ -126,33 +127,48 @@ namespace PerfectPitch.Game
         /// <summary>
         /// Process incoming pitch data
         /// </summary>
+        /// <summary>
+        /// Process incoming pitch data - override to handle both volume-only and pitch data
+        /// </summary>
         public void ProcessPitch(PitchData pitchData)
         {
-            // Critical for debugging: increment update counter
-            _updateCount++;
-
-            // Log every 10th update at INFO level
-            if (_updateCount % 10 == 0)
+            try
             {
-                Log.Info($"VoiceVisualizer.ProcessPitch called {_updateCount} times. Last data: {pitchData.AudioLevelDb:F1} dB, Pitch: {pitchData.Pitch:F1} Hz");
+                // Critical for debugging: increment update counter
+                _updateCount++;
+
+                // Log every 10th update at INFO level
+                if (_updateCount % 10 == 0)
+                {
+                    Log.Info($"VoiceVisualizer.ProcessPitch called {_updateCount} times. Last data: {pitchData.AudioLevelDb:F1} dB, Pitch: {pitchData.Pitch:F1} Hz");
+                }
+
+                if (!_isEnabled)
+                    return;
+
+                // Debug info - track data receipt
+                _lastDataTime = DateTime.Now;
+
+                // ALWAYS update audio level data
+                _audioLevel = pitchData.AudioLevel;
+                _audioLevelDb = pitchData.AudioLevelDb;
+
+                // Only update pitch-related data if pitch is detected
+                if (pitchData.Pitch > 0)
+                {
+                    _currentPitch = pitchData.Pitch;
+                    _noteName = pitchData.NoteName;
+                    _jumpLevel = pitchData.JumpLevel;
+                }
+
+                // CRITICAL: Set _dataReceived to true even for non-pitch data
+                // We want to see audio levels even when no pitch is detected
+                _dataReceived = true;
             }
-
-            if (!_isEnabled)
-                return;
-
-            // Debug info - track data receipt
-            _lastDataTime = DateTime.Now;
-
-            // Update visualization data - store even if pitch is 0
-            _currentPitch = pitchData.Pitch;
-            _audioLevel = pitchData.AudioLevel;
-            _audioLevelDb = pitchData.AudioLevelDb;
-            _noteName = pitchData.NoteName;
-            _jumpLevel = pitchData.JumpLevel;
-
-            // CRITICAL: Set _dataReceived to true even for non-pitch data
-            // We want to see audio levels even when no pitch is detected
-            _dataReceived = true;
+            catch (Exception ex)
+            {
+                Log.Error("Error in VoiceVisualizer.ProcessPitch", ex);
+            }
         }
 
         /// <summary>
